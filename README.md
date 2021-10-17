@@ -1,4 +1,4 @@
-# Learning to See by Looking at Noise
+# Learning to See by Looking at Noise (NeurIPS 2021, Spotlight)
 
 This is the official implementation of Learning to See by Looking at Noise.
 
