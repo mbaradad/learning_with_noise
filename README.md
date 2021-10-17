@@ -1,6 +1,6 @@
-# Learning to See by Looking at Noise (NeurIPS 2021, Spotlight)
+# Learning to See by Looking at Noise
 
-This is the official implementation of Learning to See by Looking at Noise.
+This is the official implementation of Learning to See by Looking at Noise (NeurIPS 2021, Spotlight).
 
 <p align="center">
   <img width="100%" src="https://mbaradad.github.io/learning_with_noise/images/teaser.jpeg">
