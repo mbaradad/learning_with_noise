@@ -72,3 +72,13 @@ Scripts to generate the datasets will be released soon!
 <!--
 To replicate the data generation processes, see the dataset_generation/README.md
 -->
+  
+# Citation
+```
+@inproceedings{baradad2021learning,
+  title={Learning to See by Looking at Noise},
+  author={Manel Baradad and Jonas Wulff and Tongzhou Wang and Phillip Isola and Antonio Torralba},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2021}
+}
+```
