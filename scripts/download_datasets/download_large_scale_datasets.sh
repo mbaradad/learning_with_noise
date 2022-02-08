@@ -11,7 +11,7 @@ datasets=('dead_leaves-mixed' \
 for DATASET in ${datasets[@]}
 do
     echo "Downloading $DATASET"
-    wget -O data/large_scale/$DATASET.zip http://monday.csail.mit.edu/learning_with_noise/datasets/large_scale/$DATASET.zip
+    wget -O data/large_scale/$DATASET.zip http://data.csail.mit.edu/noiselearning/zipped_data/large_scale/$DATASET.zip
     yes | unzip data/large_scale/$DATASET.zip -d data/large_scale/$DATASET
     rm data/large_scale/$DATASET.zip
 done
