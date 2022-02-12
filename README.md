@@ -31,7 +31,7 @@ pip intall -r requirements.txt
 ```
 
 # Small scale experiments
-To download all the datasets, first run:
+To download all the small scale datasets, first run:
 ```
 ./scripts/download_datasets/download_small_scale_datasets.sh
 ```
@@ -42,7 +42,7 @@ Then you can launch the contrastive training for all the small scale experiments
 ```
 If you just want to test the linear evaluation of the models (or do something else with them), you can directly download our pretrained encoders with:
 ```
-./scripts/download_pretrained_models/download_all_alexnet_encoders.sh
+./scripts/download_pretrained_models/download_small_scale_encoders.sh
 ```
 
 Finally, you can evaluate the linear performance with imagenet100 as:
@@ -54,24 +54,49 @@ Where <path-to-imagenet100> is the path to the imagenet100 dataset dir, which sh
 If you have imagenet1k, you can generate imagenet100 using the following command (which will create simlyncs to your imagenet1k dir):
 
 ```
-./scripts/datasets/generate_imagenet100.sh <path-to-imagenet1k> <path-to-imagenet100>
+./scripts/generate_datasets/generate_imagenet100.sh <path-to-imagenet1k> <path-to-imagenet100>
 ```
 
 
 # Large scale experiments
-Datasets and encoders will be be released soon!
-<!-- 
-To reproduce the large scale experiments, first download all datasets with:
+If you just want to test the linear evaluation of the models (or do something else with them), you can directly download our pretrained Resnet-50 encoders with:
+
+```
+./scripts/download_pretrained_models/download_large_scale_encoders.sh
+```
+
+To download all large scale datasets, first run:
+
 ```
 ./scripts/download_datasets/download_large_scale_datasets.sh
 ```
--->
+
+Then to train and evaluate MoCo v2 run, substituting `EXP_NAME` for the desired experiment name and `IMAGENET_PYTORCH` for your local copy of Imagenet-1k containing 
+train/val folders:
+
+```
+EXP_NAME=stylegan-oriented
+RESULTS_FOLDER=encoders/large_scale/$EXP_NAME
+IMAGENET_FOLDER=your_imagenet_path
+
+echo "Computing main moco!"
+python moco/main_moco.py --batch-size 256 --mlp --moco-t 0.2 --aug-plus --cos --multiprocessing-distributed --world-size 1 --rank 0 --dist-url tcp://localhost:10043 \
+--epochs 200 --restart-latest --result-folder $RESULTS_FOLDER \
+--dataset_type imagefolder --log-wandb True --workers 65 \
+data/large_scale/$EXP_NAME
+
+echo "Computing linear eval!"
+python moco/main_lincls.py -a resnet50 --batch-size 256 \
+  --dist-url 'tcp://localhost:10043' --multiprocessing-distributed --world-size 1 --rank 0 --lr 30.0 \
+  --pretrained $RESULTS_FOLDER/checkpoint_0199.pth.tar \
+  --restart-latest \
+  --result-folder $RESULTS_FOLDER/main_lincls/epoch_199 \
+  $IMAGENET_FOLDER
+```
 
 # Data generation
-Scripts to generate the datasets will be released soon!
-<!--
-To replicate the data generation processes, see the dataset_generation/README.md
--->
+The scripts to generate the datasets are in `generate_datasets` folder. 
+A README on how to execute them can be found in the folder.
   
 # Citation
 ```
