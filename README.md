@@ -100,11 +100,10 @@ A README on how to execute them can be found in the folder.
   
 # Citation
 ```
-@InProceedings{Baradad_2018_CVPR,
-author = {Baradad, Manel and Ye, Vickie and Yedidia, Adam B. and Durand, Frédo and Freeman, William T. and Wornell, Gregory W. and Torralba, Antonio},
-title = {Inferring Light Fields From Shadows},
-booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-month = {June},
-year = {2018}
+@inproceedings{baradad2021learning,
+  title={Learning to See by Looking at Noise},
+  author={Manel Baradad and Jonas Wulff and Tongzhou Wang and Phillip Isola and Antonio Torralba},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2021}
 }
 ```
