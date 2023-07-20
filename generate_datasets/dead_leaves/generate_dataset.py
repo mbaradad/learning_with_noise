@@ -37,7 +37,7 @@ def dead_leaves(res, sigma, shape_mode='mixed', max_iters=5000, textures=None):
         r_i = np.argmin(np.abs(r_dist - r_p))
         radius = max(int(r_list[r_i] * res), 1)
 
-        center_x, center_y = np.array(np.random.uniform(0,res, size=2),dtype='uint8')
+        center_x, center_y = np.array(np.random.uniform(0,res, size=2),dtype='int32')
         if shape == 'circle':
             img = cv2.circle(img, (center_x, center_y),radius=radius, color=color, thickness=-1)
         else:
