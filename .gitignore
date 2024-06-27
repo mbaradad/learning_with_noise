@@ -3,3 +3,4 @@ encoders
 lincls_imagenet
 .idea
 scripts/our*
+__pycache__

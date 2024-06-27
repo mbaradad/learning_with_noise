@@ -21,7 +21,7 @@ import network_randomized as networks_random # for randomness, no sparsity
 import network_randomized_v2 as networks_sparse # for sparsity
 import network_randomized_v3 as networks_sparse_new # for better wavelet sampling
 
-from my_python_utils.common_utils import *
+sys.path.append('.')
 
 from utils_generation import *
 
@@ -122,7 +122,7 @@ def get_network(args):
     G = nets.Generator(z_dim=512,
                        c_dim=0,
                        w_dim=512,
-                       img_resolution=256,
+                       img_resolution=args.res,
                        img_channels=3,
                        synthesis_kwargs=synthesis_kwargs)
     G.eval()
@@ -204,6 +204,7 @@ def main():
     parser.add_argument('--small-scale', action="store_true", help="use small-scale default parameters")
     parser.add_argument('--large-scale', action="store_true", help="use large-scale default parameters")
 
+    parser.add_argument('--res', type=int, default=256, choices=[256,512,1024])
     parser.add_argument('--gpu', type=str, default='0')
 
     parser.add_argument('--nimg', type=int, default=100000)
@@ -226,7 +227,7 @@ def main():
 
     outpath = get_output_path(opt)
 
-    BS = 4
+    BS = 2
 
     with torch.no_grad():
         for i in trange(opt.nimg//BS):
