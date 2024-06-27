@@ -239,7 +239,7 @@ def main():
             os.makedirs(outdir, exist_ok=True)
 
             # Reset every 100 batches
-            if i % 100 == 0:
+            if i % (400 / BS) == 0:
                 G,nl = get_network(opt)
 
             images = generate_images(G,BS,opt)
