@@ -240,7 +240,9 @@ def main():
 
             # Reset every 100 batches
             if i % (400 / BS) == 0:
+                print("Restarting network, this can take a while...")
                 G,nl = get_network(opt)
+                print("Finished restarting network")
 
             images = generate_images(G,BS,opt)
 
