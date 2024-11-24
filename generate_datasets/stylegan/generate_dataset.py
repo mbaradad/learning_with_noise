@@ -5,6 +5,7 @@ from tqdm import trange
 
 import numpy as np
 import time
+import sys
 
 import os,sys
 assert os.getcwd().endswith('generate_datasets'), "This script should be run from generate_datasets folder."
@@ -114,31 +115,35 @@ def get_network(args):
             'activation':'relu',
             # 'resample_filter': [1,2,1],
             'same_noise_maps': args.same_noise_map,
-            'bias_range': args.bias_range
+            'bias_range': args.bias_range,
+            'randomize_filters': args.randomize_filters
         }
-
-
 
     G = nets.Generator(z_dim=512,
                        c_dim=0,
                        w_dim=512,
                        img_resolution=args.res,
                        img_channels=3,
-                       synthesis_kwargs=synthesis_kwargs)
+                       synthesis_kwargs=synthesis_kwargs,
+                       )
     G.eval()
 
-    nl = 14
+    nl = G.num_ws
     return G.cuda(),nl
 
-def generate_images(G,nimg,args):
+def generate_images(G,nimg,args, fixed_w=None):
     nl = G.num_ws
 
     out = []
     w = torch.randn(nimg,nl,512).cuda()
     w_ = R(w)
+    if not fixed_w is None:
+        w_ = fixed_w.repeat(nimg,1,1)
 
     if args.network_type == 'original':
         noise_mode='random'
+    elif args.no_noise:
+        noise_mode='const'
     else:
         noise_mode = 'pink_random'
 
@@ -216,6 +221,11 @@ def main():
     parser.add_argument('--random_configuration', type=str, default='chin-chout')
     parser.add_argument('--name', type=str, default='',  help='Name of dataset. If empty, use default.')
 
+    # our arguments for extra testing
+    parser.add_argument('--fixed_w', type=str2bool, default='False',  help='Always use the same w.')
+    parser.add_argument('--randomize_filters', type=str2bool, default='True',  help='Randomize filters at each iteration to increase diversity.')
+    parser.add_argument('--no_noise', type=str2bool, default='False',  help='Use no noise at the inputs.')
+
     opt = parser.parse_args()
 
     select_gpus(opt.gpu)
@@ -227,8 +237,9 @@ def main():
 
     outpath = get_output_path(opt)
 
-    BS = 2
+    BS = 1
 
+    w_ = None
     with torch.no_grad():
         for i in trange(opt.nimg//BS):
             imgnum = i*BS + opt.startimg
@@ -243,9 +254,13 @@ def main():
                 print("Restarting network, this can take a while...")
                 G,nl = get_network(opt)
                 print("Finished restarting network")
-
-            images = generate_images(G,BS,opt)
-
+                if opt.fixed_w and w_ is None:
+                    w = torch.randn(1,nl,512).cuda()
+                    w_ = R(w)
+            
+            images = generate_images(G,BS,opt,w_)
+            a = 1
+            
             for j in range(BS):
                 inum = imgnum + j
                 fname = os.path.join(outdir, f'{inum:08d}.jpg')

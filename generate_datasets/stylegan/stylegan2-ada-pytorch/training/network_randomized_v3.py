@@ -379,6 +379,7 @@ class SynthesisLayer(torch.nn.Module):
         resample_filter = [1,3,3,1],    # Low-pass filter to apply when resampling activations.
         conv_clamp      = None,         # Clamp the output of convolution layers to +-X, None = disable clamping.
         channels_last   = False,        # Use channels_last format for the weights?
+        randomize_filters = True        # Randomize filters ordering at every forward
     ):
         super().__init__()
         self.resolution = resolution
@@ -389,6 +390,7 @@ class SynthesisLayer(torch.nn.Module):
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
         self.padding = kernel_size // 2
         self.act_gain = bias_act.activation_funcs[activation].def_gain
+        self.randomize_filters = randomize_filters
 
         self.affine = FullyConnectedLayer(w_dim, in_channels, bias_init=1)
         memory_format = torch.channels_last if channels_last else torch.contiguous_format
@@ -406,8 +408,9 @@ class SynthesisLayer(torch.nn.Module):
             [pink_noise((resolution, resolution)).unsqueeze(0) for i in range(100)],
             dim=0)
         self.register_buffer('pink_noise_maps', noisemaps)
-
-
+        self.chin_wavelet_inds = None
+        self.chout_wavelet_inds = None
+        self.n_sub = -1
 
 
     def forward(self, x, w, noise_mode='random', fused_modconv=True, gain=1, fixed_noise_map=None, bias_range=0, random_configuration=('chin', 'chout')):
@@ -439,14 +442,19 @@ class SynthesisLayer(torch.nn.Module):
 
 
         # Subsample a set of wavelets
-        N_SUB=len(self.wavelets)
-        N_SUB=np.random.randint(low=5,high=len(self.wavelets)+1)
+        
+        if self.randomize_filters or self.n_sub == -1:
+            self.n_sub=np.random.randint(low=5,high=len(self.wavelets)+1)
+        
         # N_SUB=10
         RANDOM_FILTERS = random_configuration[0] #chin, chout
         RANDOM_WEIGHTS = random_configuration[1] #chin, chout, both
 
-        wavelet_sub_inds = torch.randperm(len(self.wavelets), device=x.device)[:N_SUB]
-        # wavelet_sub_inds = [0,1,2,3,4,5]
+
+        if self.randomize_filters:
+            wavelet_sub_inds = torch.randperm(len(self.wavelets), device=x.device)[:self.n_sub]
+        else:
+            wavelet_sub_inds = list(range(self.n_sub))
         wavelet_sub = self.wavelets[wavelet_sub_inds]
 
         chout, chin = self.weight.data.shape[:2]
@@ -458,13 +466,14 @@ class SynthesisLayer(torch.nn.Module):
 
         # # Randomize
         # weights = weights * torch.randn(1, chin, 1, 1, device=x.device)
-
         if RANDOM_FILTERS == 'chin':
-            wavelet_inds = torch.randint(N_SUB, (chin,), device=x.device)
-            weights = wavelet_sub[wavelet_inds].unsqueeze(0).expand_as(self.weight)
+            if self.chin_wavelet_inds is None or self.randomize_filters:
+                self.chin_wavelet_inds = torch.randint(self.n_sub, (chin,), device=x.device)
+            weights = wavelet_sub[self.chin_wavelet_inds].unsqueeze(0).expand_as(self.weight)
         elif RANDOM_FILTERS == 'chout':
-            wavelet_inds = torch.randint(N_SUB, (chout,), device=x.device)
-            weights = wavelet_sub[wavelet_inds].unsqueeze(1).expand_as(self.weight)
+            if self.chout_wavelet_inds is None or self.randomize_filters:
+                self.chout_wavelet_inds = torch.randint(self.n_sub, (chout,), device=x.device)
+            weights = wavelet_sub[self.chout_wavelet_inds].unsqueeze(1).expand_as(self.weight)
         else:
             raise
 
@@ -474,16 +483,16 @@ class SynthesisLayer(torch.nn.Module):
         #     weights = weights * (-0.5 + torch.randn(chout, 1, 1, 1, device=x.device).expand_as(weights))
         # elif RANDOM_WEIGHTS == 'both':
         #     weights = weights * (-0.5 + torch.randn(chout, chin, 1, 1, device=x.device).expand_as(weights))
-
-        if RANDOM_WEIGHTS == 'chin':
-            weights = weights * torch.randn(1, chin, 1, 1, device=x.device).expand_as(weights)
-        elif RANDOM_WEIGHTS == 'chout':
-            weights = weights * torch.randn(chout, 1, 1, 1, device=x.device).expand_as(weights)
-        elif RANDOM_WEIGHTS == 'both':
-            weights = weights * torch.randn(chout, chin, 1, 1, device=x.device).expand_as(weights)
-        else:
-            raise
- 
+        if self.randomize_filters:
+            if RANDOM_WEIGHTS == 'chin':
+                weights = weights * torch.randn(1, chin, 1, 1, device=x.device).expand_as(weights)
+            elif RANDOM_WEIGHTS == 'chout':
+                weights = weights * torch.randn(chout, 1, 1, 1, device=x.device).expand_as(weights)
+            elif RANDOM_WEIGHTS == 'both':
+                weights = weights * torch.randn(chout, chin, 1, 1, device=x.device).expand_as(weights)
+            else:
+                raise
+    
 
 
 
@@ -707,7 +716,7 @@ class SynthesisNetwork(torch.nn.Module):
         noise_map = None
         if self.same_noise_maps:
             noise_map = pink_noise(sz=(512,512)).to(ws.device)
-
+            
         x = img = None
         for res, cur_ws in zip(self.block_resolutions, block_ws):
             block = getattr(self, f'b{res}')
